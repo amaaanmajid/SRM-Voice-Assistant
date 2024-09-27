@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRM Voice Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #output {
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            min-height: 100px;
+        }
+        button {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Voice Assistant</h1>
+        <button id="startButton">Start Listening</button>
+        <div id="output"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script>
+        const startButton = document.getElementById('startButton');
+        const output = document.getElementById('output');
+        let recognition;
+
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                output.innerHTML = `You said: ${transcript}`;
+                sendToAssistant(transcript);
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error', event.error);
+                output.innerHTML = `Error: ${event.error}`;
+            };
+        } else {
+            startButton.style.display = 'none';
+            output.innerHTML = 'Speech recognition not supported in this browser.';
+        }
+
+        startButton.onclick = function() {
+            if (recognition) {
+                recognition.start();
+                output.innerHTML = 'Listening...';
+            }
+        };
+
+        async function sendToAssistant(text) {
+            try {
+                const response = await axios.post('http://127.0.0.1:8000/api/assistant', { input: text });
+                const assistantResponse = response.data.response;
+                output.innerHTML += `<br><br>Assistant: ${assistantResponse}`;
+                speak(assistantResponse);
+            } catch (error) {
+                console.error('Error communicating with assistant:', error);
+                output.innerHTML += '<br><br>Error communicating with assistant.';
+            }
+        }
+
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            window.speechSynthesis.speak(utterance);
+        }
+    </script>
+</body>
+</html>
